@@ -1,131 +1,132 @@
 module Main exposing (..)
 
+import Time exposing (second)
 import Html exposing (h1, div, Html)
 import Html.Attributes as Attr
 import Html.Events exposing (..)
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
-import Animation
-import Color exposing (black, rgb, red)
+import Animation exposing (px)
+import Color exposing (purple, green, rgb)
 
 
 type alias Model =
-    { style : Animation.State
-    , index : Int
+    { styles : List Animation.State
     }
 
 
 type Msg
-    = Morph
+    = EverybodySwitch
     | Animate Animation.Msg
 
 
-type alias Slice =
-    List Animation.PathStep
-
-
-initialModel : Model
-initialModel =
-    { style =
-        Animation.style
-            [ Animation.stroke red
-            , Animation.strokeWidth 2
-            , Animation.path slice1
-            ]
-    , index = 1
+type alias Palette =
+    { orange : Color.Color
+    , green : Color.Color
+    , lavender : Color.Color
+    , blue : Color.Color
     }
 
 
+palette : Palette
+palette =
+    { orange = rgb 240 173 0
+    , green = rgb 127 209 59
+    , lavender = rgb 90 99 120
+    , blue = rgb 96 181 204
+    }
 
--- <path d="M 500 500 L  500 0 A 500 500 0 0 1 975.5282581475768 654.5084971874735 Z" stroke="transparent" fill="#4D4D4D"></path>
+
+type alias Slice =
+    List Animation.Property
 
 
 slice1 : Slice
 slice1 =
-    [ Animation.moveTo 500 500
-    , Animation.lineTo 1000 500
-    , Animation.arc simpleArc
-    , Animation.close
+    [ Animation.fill palette.green
+    , Animation.path
+        [ Animation.moveTo 500 500
+        , Animation.lineTo 1000 500
+        , Animation.arc
+            { x = 500
+            , y = 500
+            , radius = 500
+            , startAngle = 0
+            , endAngle = 360
+            , clockwise = True
+            }
+        , Animation.close
+        ]
     ]
-
-
-simpleArc : Animation.Arc
-simpleArc =
-    { x = 500
-    , y = 500
-    , radius = 500
-    , startAngle = 0
-    , endAngle = 45
-    , clockwise = True
-    }
 
 
 slice2 : Slice
 slice2 =
-    [ Animation.moveTo 500 500
-    , Animation.lineTo 1000 500
-    , Animation.arc simpleArc2
-    , Animation.close
+    [ Animation.fill palette.blue
+    , Animation.path
+        [ Animation.moveTo 500 500
+        , Animation.lineTo 1000 500
+        , Animation.arc
+            { x = 500
+            , y = 500
+            , radius = 500
+            , startAngle = 0
+            , endAngle = 360
+            , clockwise = True
+            }
+        , Animation.close
+        ]
     ]
 
 
-simpleArc2 : Animation.Arc
-simpleArc2 =
-    { x = 500
-    , y = 500
-    , radius = 500
-    , startAngle = 0
-    , endAngle = 90
-    , clockwise = True
-    }
-
-
-slices : List Slice
+slices : List (List Animation.Property)
 slices =
-    [ slice1
-    , slice2
-    ]
+    [ slice1 ]
+
+
+
+-- , [ Animation.fill palette.green
+--   , slice2
+--   ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
-        Morph ->
+        EverybodySwitch ->
             let
-                wrappedIndex =
-                    if List.length slices < model.index then
-                        model.index - List.length slices
-                    else
-                        model.index
-
-                newPath =
-                    Maybe.withDefault slice1 <|
-                        List.head <|
-                            (List.drop wrappedIndex slices)
-                                ++ (List.take wrappedIndex slices)
+                newStyles =
+                    [ slice2 ]
             in
-                { model
-                    | index = wrappedIndex + 1
-                    , style =
-                        Animation.interrupt
-                            [ Animation.to
-                                [ Animation.path newPath ]
-                            ]
-                            model.style
-                }
-                    ! []
+                ( { model
+                    | styles =
+                        List.map3
+                            (\i style newStyle ->
+                                Animation.interrupt
+                                    [ Animation.wait (toFloat i * 0.05 * second)
+                                    , Animation.to newStyle
+                                    ]
+                                    style
+                            )
+                            (List.range 0 (List.length model.styles))
+                            model.styles
+                            newStyles
+                  }
+                , Cmd.none
+                )
 
         Animate time ->
-            { model
-                | style = Animation.update time model.style
-            }
-                ! []
+            ( { model
+                | styles = List.map (Animation.update time) model.styles
+              }
+            , Cmd.none
+            )
 
 
 view : Model -> Html Msg
 view model =
     div
-        [ onClick Morph
+        [ onClick EverybodySwitch
         , Attr.style [ ( "margin", "200px auto" ), ( "width", "1000px" ), ( "height", "1000px" ), ( "cursor", "pointer" ) ]
         ]
         [ h1 [] [ text "Click to morph!" ]
@@ -134,16 +135,38 @@ view model =
             , x "0"
             , y "0"
             , viewBox "0 0 1000 1000"
-            , width "1000"
             ]
-            [ Svg.path (Animation.render model.style) []
-            ]
+          <|
+            (List.map (\slice -> Svg.path (Animation.render slice) []) model.styles)
         ]
 
 
 init : ( Model, Cmd Msg )
 init =
-    initialModel ! []
+    ( { styles =
+            --initial slice with really really small arc so that first added item animates
+            [ Animation.style
+                [ Animation.fill palette.orange
+                , Animation.path
+                    [ Animation.moveTo 500 500
+                    , Animation.lineTo 1000 500
+                    , Animation.arc
+                        { x = 500
+                        , y = 500
+                        , radius = 500
+                        , startAngle = 0
+                        , endAngle = 0.00000001
+                        , clockwise = True
+                        }
+                    , Animation.close
+                    ]
+                ]
+            ]
+
+      --List.map Animation.style slices
+      }
+    , Cmd.none
+    )
 
 
 main : Program Never Model Msg
@@ -152,5 +175,10 @@ main =
         { init = init
         , view = view
         , update = update
-        , subscriptions = (\model -> Animation.subscription Animate [ model.style ])
+        , subscriptions =
+            (\model ->
+                Animation.subscription
+                    Animate
+                    model.styles
+            )
         }
