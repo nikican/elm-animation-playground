@@ -11,7 +11,7 @@ import Color exposing (purple, green, rgb)
 
 
 type alias Model =
-    { styles : List Animation.State
+    { slices : List Animation.State
     }
 
 
@@ -79,45 +79,34 @@ slice2 =
     ]
 
 
-slices : List (List Animation.Property)
-slices =
-    [ slice1 ]
-
-
-
--- , [ Animation.fill palette.green
---   , slice2
---   ]
-
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
         EverybodySwitch ->
             let
-                newStyles =
+                newSlices =
                     [ slice2 ]
             in
                 ( { model
-                    | styles =
+                    | slices =
                         List.map3
-                            (\i style newStyle ->
+                            (\i slice newStyle ->
                                 Animation.interrupt
                                     [ Animation.wait (toFloat i * 0.05 * second)
                                     , Animation.to newStyle
                                     ]
-                                    style
+                                    slice
                             )
-                            (List.range 0 (List.length model.styles))
-                            model.styles
-                            newStyles
+                            (List.range 0 (List.length model.slices))
+                            model.slices
+                            newSlices
                   }
                 , Cmd.none
                 )
 
         Animate time ->
             ( { model
-                | styles = List.map (Animation.update time) model.styles
+                | slices = List.map (Animation.update time) model.slices
               }
             , Cmd.none
             )
@@ -137,13 +126,18 @@ view model =
             , viewBox "0 0 1000 1000"
             ]
           <|
-            (List.map (\slice -> Svg.path (Animation.render slice) []) model.styles)
+            drawSlice model.slices
         ]
+
+
+drawSlice : List Animation.State -> List (Svg msg)
+drawSlice slices =
+    List.map (\slice -> Svg.path (Animation.render slice) []) slices
 
 
 init : ( Model, Cmd Msg )
 init =
-    ( { styles =
+    ( { slices =
             --initial slice with really really small arc so that first added item animates
             [ Animation.style
                 [ Animation.fill palette.orange
@@ -179,6 +173,6 @@ main =
             (\model ->
                 Animation.subscription
                     Animate
-                    model.styles
+                    model.slices
             )
         }
