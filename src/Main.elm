@@ -52,7 +52,7 @@ slice1 =
             , y = 500
             , radius = 500
             , startAngle = 0
-            , endAngle = 360
+            , endAngle = 45
             , clockwise = True
             }
         , Animation.close
@@ -71,7 +71,7 @@ slice2 =
             , y = 500
             , radius = 500
             , startAngle = 0
-            , endAngle = 360
+            , endAngle = 180
             , clockwise = True
             }
         , Animation.close
@@ -124,6 +124,8 @@ view model =
             , x "0"
             , y "0"
             , viewBox "0 0 1000 1000"
+
+            -- , Svg.Attributes.style "transform: rotate(-90deg)"
             ]
           <|
             drawSlice model.slices
@@ -138,29 +140,71 @@ drawSlice slices =
 init : ( Model, Cmd Msg )
 init =
     ( { slices =
-            --initial slice with really really small arc so that first added item animates
-            [ Animation.style
-                [ Animation.fill palette.orange
-                , Animation.path
-                    [ Animation.moveTo 500 500
-                    , Animation.lineTo 1000 500
-                    , Animation.arc
-                        { x = 500
-                        , y = 500
-                        , radius = 500
-                        , startAngle = 0
-                        , endAngle = 0.00000001
-                        , clockwise = True
-                        }
-                    , Animation.close
+            let
+                radius =
+                    500
+
+                startAngle =
+                    0
+
+                x =
+                    500
+
+                y =
+                    500
+            in
+                [ Animation.style
+                    [ Animation.fill Color.red
+                    , Animation.strokeWidth 2
+                    , Animation.stroke Color.red
+                    , Animation.path <| slicePath x y radius startAngle 30
+
+                    -- , Animation.path <|
+                    --     [ Animation.moveTo x y
+                    --     , Animation.lineTo (x + dx) (y + dy)
+                    --     , Animation.arc
+                    --         { x = x
+                    --         , y = y
+                    --         , radius = radius
+                    --         , startAngle = startAngle
+                    --         , endAngle = endAngle
+                    --         , clockwise = True
+                    --         }
+                    --     , Animation.close
+                    --     ]
                     ]
                 ]
-            ]
 
       --List.map Animation.style slices
       }
     , Cmd.none
     )
+
+
+slicePath : Float -> Float -> Float -> Float -> Float -> List Animation.PathStep
+slicePath x y radius startAngle percent =
+    let
+        dx =
+            radius * cos (degrees startAngle)
+
+        dy =
+            radius * sin (degrees startAngle)
+
+        endAngle =
+            startAngle + 360 * percent / 100
+    in
+        [ Animation.moveTo x y
+        , Animation.lineTo (x + dx) (y + dy)
+        , Animation.arc
+            { x = x
+            , y = y
+            , radius = radius
+            , startAngle = startAngle
+            , endAngle = endAngle
+            , clockwise = True
+            }
+        , Animation.close
+        ]
 
 
 main : Program Never Model Msg
