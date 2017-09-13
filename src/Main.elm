@@ -20,96 +20,80 @@ type Msg
     | Animate Animation.Msg
 
 
-type alias Palette =
-    { orange : Color.Color
-    , green : Color.Color
-    , lavender : Color.Color
-    , blue : Color.Color
-    }
-
-
-palette : Palette
-palette =
-    { orange = rgb 240 173 0
-    , green = rgb 127 209 59
-    , lavender = rgb 90 99 120
-    , blue = rgb 96 181 204
-    }
-
-
 type alias Slice =
     List Animation.Property
 
 
 slice1 : Slice
 slice1 =
-    [ Animation.fill palette.green
-    , Animation.path
-        [ Animation.moveTo 500 500
-        , Animation.lineTo 1000 500
-        , Animation.arc
-            { x = 500
-            , y = 500
-            , radius = 500
-            , startAngle = 0
-            , endAngle = 45
-            , clockwise = True
-            }
-        , Animation.close
-        ]
+    [ Animation.fill Color.red
+    , Animation.path <| slicePath 500 500 500 0 70
     ]
 
 
 slice2 : Slice
 slice2 =
-    [ Animation.fill palette.blue
-    , Animation.path
-        [ Animation.moveTo 500 500
-        , Animation.lineTo 1000 500
-        , Animation.arc
-            { x = 500
-            , y = 500
-            , radius = 500
-            , startAngle = 0
-            , endAngle = 180
-            , clockwise = True
-            }
-        , Animation.close
-        ]
+    [ Animation.fill Color.blue
+    , Animation.path <| slicePath 500 500 500 (0 + 360 * 30 / 100) 70
     ]
+
+
+slice3 : Slice
+slice3 =
+    [ Animation.fill Color.red
+    , Animation.path <| slicePath 500 500 500 20 40
+    ]
+
+
+slice4 : Slice
+slice4 =
+    [ Animation.fill Color.blue
+    , Animation.path <| slicePath 500 500 500 (0 + 360 * 50 / 100) 50
+    ]
+
+
+init : ( Model, Cmd Msg )
+init =
+    { slices =
+        let
+            _ =
+                Debug.log "slice1" slice1
+        in
+            List.map Animation.style [ slice1 ]
+    }
+        ! []
+
+
+newSlices : List Slice
+newSlices =
+    [ slice3 ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update action model =
     case action of
         EverybodySwitch ->
-            let
-                newSlices =
-                    [ slice2 ]
-            in
-                ( { model
-                    | slices =
-                        List.map3
-                            (\i slice newStyle ->
-                                Animation.interrupt
-                                    [ Animation.wait (toFloat i * 0.05 * second)
-                                    , Animation.to newStyle
-                                    ]
-                                    slice
-                            )
-                            (List.range 0 (List.length model.slices))
-                            model.slices
-                            newSlices
-                  }
-                , Cmd.none
-                )
+            { model
+                | slices =
+                    List.map3
+                        (\i slice newStyle ->
+                            Animation.interrupt
+                                [ Animation.wait (toFloat i * 1 * second)
+                                , Animation.to newStyle
+                                ]
+                                slice
+                        )
+                        (List.range 0 (List.length model.slices))
+                        model.slices
+                        newSlices
+            }
+                ! []
 
         Animate time ->
-            ( { model
+            { model
                 | slices = List.map (Animation.update time) model.slices
-              }
-            , Cmd.none
-            )
+            }
+                ! []
 
 
 view : Model -> Html Msg
@@ -135,50 +119,6 @@ view model =
 drawSlice : List Animation.State -> List (Svg msg)
 drawSlice slices =
     List.map (\slice -> Svg.path (Animation.render slice) []) slices
-
-
-init : ( Model, Cmd Msg )
-init =
-    ( { slices =
-            let
-                radius =
-                    500
-
-                startAngle =
-                    0
-
-                x =
-                    500
-
-                y =
-                    500
-            in
-                [ Animation.style
-                    [ Animation.fill Color.red
-                    , Animation.strokeWidth 2
-                    , Animation.stroke Color.red
-                    , Animation.path <| slicePath x y radius startAngle 30
-
-                    -- , Animation.path <|
-                    --     [ Animation.moveTo x y
-                    --     , Animation.lineTo (x + dx) (y + dy)
-                    --     , Animation.arc
-                    --         { x = x
-                    --         , y = y
-                    --         , radius = radius
-                    --         , startAngle = startAngle
-                    --         , endAngle = endAngle
-                    --         , clockwise = True
-                    --         }
-                    --     , Animation.close
-                    --     ]
-                    ]
-                ]
-
-      --List.map Animation.style slices
-      }
-    , Cmd.none
-    )
 
 
 slicePath : Float -> Float -> Float -> Float -> Float -> List Animation.PathStep
