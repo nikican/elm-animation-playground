@@ -27,46 +27,39 @@ type alias Slice =
 slice1 : Slice
 slice1 =
     [ Animation.fill Color.red
-    , Animation.path <| slicePath 500 500 500 0 70
+    , Animation.path <| slicePath 500 500 500 0 40
     ]
 
 
 slice2 : Slice
 slice2 =
     [ Animation.fill Color.blue
-    , Animation.path <| slicePath 500 500 500 (0 + 360 * 30 / 100) 70
+    , Animation.path <| slicePath 500 500 500 (360 * 40 / 100) 60
     ]
 
 
 slice3 : Slice
 slice3 =
     [ Animation.fill Color.red
-    , Animation.path <| slicePath 500 500 500 20 40
+    , Animation.path <| slicePath 500 500 500 0 50
     ]
 
 
 slice4 : Slice
 slice4 =
     [ Animation.fill Color.blue
-    , Animation.path <| slicePath 500 500 500 (0 + 360 * 50 / 100) 50
+    , Animation.path <| slicePath 500 500 500 (360 * 50 / 100) 33.333
     ]
 
 
 init : ( Model, Cmd Msg )
 init =
-    { slices =
-        let
-            _ =
-                Debug.log "slice1" slice1
-        in
-            List.map Animation.style [ slice1 ]
-    }
-        ! []
+    { slices = List.map Animation.style [ slice2 ] } ! []
 
 
 newSlices : List Slice
 newSlices =
-    [ slice3 ]
+    [ slice4 ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -75,15 +68,13 @@ update action model =
         EverybodySwitch ->
             { model
                 | slices =
-                    List.map3
-                        (\i slice newStyle ->
+                    List.map2
+                        (\slice newStyle ->
                             Animation.interrupt
-                                [ Animation.wait (toFloat i * 1 * second)
-                                , Animation.to newStyle
+                                [ Animation.to newStyle
                                 ]
                                 slice
                         )
-                        (List.range 0 (List.length model.slices))
                         model.slices
                         newSlices
             }
